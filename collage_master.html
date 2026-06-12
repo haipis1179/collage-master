@@ -1,0 +1,1780 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拼圖大師 Collage Master - 專業級高畫質圖片拼接工具</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 自訂滾動條 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+        /* 拖動中的視覺效果 */
+        .dragging {
+            opacity: 0.5;
+            border: 2px dashed #8b5cf6;
+        }
+        /* 專業棋盤格透明背景預覽 */
+        .transparent-bg-pattern {
+            background-image: linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
+                              linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
+                              linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
+                              linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        .dark .transparent-bg-pattern {
+            background-image: linear-gradient(45deg, #1e293b 25%, transparent 25%),
+                              linear-gradient(-45deg, #1e293b 25%, transparent 25%),
+                              linear-gradient(45deg, transparent 75%, #1e293b 75%),
+                              linear-gradient(-45deg, transparent 75%, #1e293b 75%);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-300">
+
+    <div class="flex flex-col lg:flex-row min-h-screen">
+        
+        <!-- 左側控制面版 -->
+        <aside class="w-full lg:w-[420px] bg-white dark:bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800 flex flex-col h-screen lg:sticky lg:top-0 z-10">
+            <!-- 標題與亮暗切換 -->
+            <div class="p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-primary-500 rounded-xl text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight">拼圖大師 Collage Master</h1>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">專業級圖片無損拼接</span>
+                    </div>
+                </div>
+                <button id="themeToggle" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                    <!-- Sun Icon -->
+                    <svg id="sunIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M14.828 14.828a4 4 0 11-5.656 0 4 4 0 015.656 0z"></path></svg>
+                    <!-- Moon Icon -->
+                    <svg id="moonIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </button>
+            </div>
+
+            <!-- 控制面板滾動內容 -->
+            <div class="flex-1 overflow-y-auto p-5 space-y-6">
+                <!-- 上傳區區塊 -->
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">1. 上傳來源圖片 (上限 9 張)</h2>
+                    <div id="dropzone" class="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary-500 dark:hover:border-primary-400 rounded-xl p-5 text-center cursor-pointer transition bg-slate-50/50 dark:bg-slate-900/50">
+                        <input type="file" id="fileInput" class="hidden" accept="image/*" multiple>
+                        <svg class="w-10 h-10 mx-auto text-slate-400 dark:text-slate-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        <p class="text-sm font-medium">點擊上傳 或 拖曳圖片至此</p>
+                        <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">支援 PNG, JPG, WEBP (最高無損拼接)</p>
+                    </div>
+                </div>
+
+                <!-- 圖片管理列表 -->
+                <div id="imageListSection" class="hidden">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">已上傳圖片 (<span id="imgCount">0</span>/9)</h2>
+                        <button id="clearAllBtn" class="text-xs text-red-500 hover:text-red-600 font-medium">全部清除</button>
+                    </div>
+                    <div id="imageList" class="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                        <!-- 動態插入圖片列表 -->
+                    </div>
+                </div>
+
+                <!-- 拼接模式設定 -->
+                <div>
+                    <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">2. 拼接版面設定</h2>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button data-layout="grid" class="layout-btn p-3 rounded-lg border text-center transition flex flex-col items-center gap-1.5 bg-primary-50 border-primary-500 text-primary-600 dark:bg-primary-950/40 dark:border-primary-400 dark:text-primary-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                            <span class="text-xs font-semibold">網格</span>
+                        </button>
+                        <button data-layout="horizontal" class="layout-btn p-3 rounded-lg border text-center transition flex flex-col items-center gap-1.5 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h14a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4z"></path></svg>
+                            <span class="text-xs font-semibold">橫排</span>
+                        </button>
+                        <button data-layout="vertical" class="layout-btn p-3 rounded-lg border text-center transition flex flex-col items-center gap-1.5 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                            <span class="text-xs font-semibold">直排</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 細節參數設定 -->
+                <div class="space-y-4">
+                    <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">3. 拼圖細節微調</h2>
+
+                    <!-- 網格專用：欄數設定 -->
+                    <div id="gridColsOption" class="space-y-2">
+                        <label class="text-xs font-medium text-slate-500 flex justify-between">
+                            <span>網格欄數 (Columns)</span>
+                            <span id="colsVal" class="font-bold text-primary-500">自動</span>
+                        </label>
+                        <input type="range" id="gridCols" min="1" max="5" value="1" class="w-full accent-primary-500">
+                    </div>
+
+                    <!-- 裁切與縮放模式 -->
+                    <div id="fitModeOption" class="space-y-2">
+                        <label class="text-xs font-medium text-slate-500 flex justify-between">
+                            <span>圖片裁切填充模式</span>
+                            <span id="manualHint" class="text-[10px] text-primary-500 font-semibold animate-pulse hidden">💡 請直接拖曳右側圖片移動</span>
+                        </label>
+                        <select id="fitMode" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            <option value="cover">覆蓋填滿 (Cover - 智慧置中)</option>
+                            <option value="contain">完整顯示 (Contain - 留白)</option>
+                            <option value="manual">手動調整 (手動拖曳位置與自由縮放)</option>
+                        </select>
+                    </div>
+
+                    <!-- 手動調整專用控制台 -->
+                    <div id="manualControlsPanel" class="hidden p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">選定單圖微調</span>
+                            <button id="resetImgOffsetBtn" class="text-[10px] text-primary-500 hover:underline">重設此圖</button>
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-[11px] text-slate-400 flex justify-between">
+                                <span>選中圖片縮放 (Zoom)</span>
+                                <span id="imgScaleVal" class="font-mono text-primary-500">1.0x</span>
+                            </label>
+                            <input type="range" id="imgScaleRange" min="0.5" max="5" step="0.05" value="1" class="w-full accent-primary-500">
+                        </div>
+                        <p class="text-[10px] text-slate-400">滑鼠或手指直接在畫布上「按住拖曳」即可移動選中的圖片。</p>
+                    </div>
+
+                    <!-- 網格格子比例 (Grid Only) -->
+                    <div id="gridRatioOption" class="space-y-2">
+                        <label class="text-xs font-medium text-slate-500">網格格子比例 (僅限網格)</label>
+                        <select id="gridRatio" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            <option value="1:1">1 : 1 (正方形)</option>
+                            <option value="4:3">4 : 3 (標準數位照片)</option>
+                            <option value="16:9">16 : 9 (寬螢幕)</option>
+                            <option value="original_avg">自適應 (使用圖片平均比例)</option>
+                        </select>
+                    </div>
+
+                    <!-- 圖片圓角與間距 -->
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-xs font-medium text-slate-500 flex justify-between">
+                                <span>拼接間距 (Gap)</span>
+                                <span id="gapVal" class="font-semibold">12 px</span>
+                            </label>
+                            <input type="range" id="gapRange" min="0" max="100" value="12" class="w-full accent-primary-500">
+                        </div>
+
+                        <div>
+                            <label class="text-xs font-medium text-slate-500 flex justify-between">
+                                <span>外框邊距 (Padding)</span>
+                                <span id="paddingVal" class="font-semibold">12 px</span>
+                            </label>
+                            <input type="range" id="paddingRange" min="0" max="100" value="12" class="w-full accent-primary-500">
+                        </div>
+
+                        <div>
+                            <label class="text-xs font-medium text-slate-500 flex justify-between">
+                                <span>圖片圓角 (Roundness)</span>
+                                <span id="radiusVal" class="font-semibold">12 px</span>
+                            </label>
+                            <input type="range" id="radiusRange" min="0" max="100" value="12" class="w-full accent-primary-500">
+                        </div>
+                    </div>
+
+                    <!-- 背景色選擇與透明選項 -->
+                    <div class="bg-slate-50 dark:bg-slate-900/40 p-3 rounded-xl space-y-2 border border-slate-100 dark:border-slate-800">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-medium text-slate-500">背景與縫隙顏色</label>
+                            <div class="flex items-center gap-2" id="colorPickerContainer">
+                                <input type="color" id="bgColorInput" value="#ffffff" class="w-8 h-8 rounded cursor-pointer border-0 p-0 bg-transparent">
+                                <input type="text" id="bgColorText" value="#ffffff" class="w-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1 text-xs text-center focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
+                            <div class="flex flex-col">
+                                <span class="text-xs font-medium text-slate-700 dark:text-slate-300">使用透明背景</span>
+                                <span class="text-[9px] text-slate-400">開啟後將無視上方背景色 (僅支援 PNG 匯出)</span>
+                            </div>
+                            <input type="checkbox" id="transparentBgToggle" class="w-4 h-4 text-primary-600 bg-slate-100 border-slate-300 rounded focus:ring-primary-500">
+                        </div>
+                    </div>
+
+                    <!-- 浮水印設置 -->
+                    <div class="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-medium text-slate-500">添加快速版權浮水印</label>
+                            <input type="checkbox" id="watermarkToggle" class="w-4 h-4 text-primary-600 bg-slate-100 border-slate-300 rounded focus:ring-primary-500">
+                        </div>
+                        <div id="watermarkSettings" class="hidden space-y-2">
+                            <input type="text" id="watermarkText" placeholder="輸入浮水印內容..." value="Made with Collage Master" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            <div class="grid grid-cols-2 gap-2">
+                                <select id="watermarkPos" class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1.5 text-xs">
+                                    <option value="bottom-right">右下角</option>
+                                    <option value="bottom-left">左下角</option>
+                                    <option value="top-right">右上角</option>
+                                    <option value="top-left">左上角</option>
+                                </select>
+                                <input type="color" id="watermarkColor" value="#ffffff" class="w-full h-8 rounded cursor-pointer border-0 bg-transparent p-0">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- 4. 自訂文字與 Emoji 圖層 -->
+                <div class="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <div class="flex justify-between items-center gap-2">
+                        <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">4. 自訂裝飾圖層</h2>
+                        <div class="flex gap-1.5 shrink-0">
+                            <button id="addTextBtn" class="px-2 py-1 text-xs bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-lg shadow transition flex items-center gap-0.5">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                + 文字
+                            </button>
+                            <button id="addEmojiBtn" class="px-2 py-1 text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg shadow transition flex items-center gap-0.5">
+                                <span class="text-xs">😀</span>
+                                + Emoji
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 統一的圖層編輯面板 (選中文字或 Emoji 時顯示) -->
+                    <div id="layerEditorPanel" class="hidden p-4 bg-primary-500/5 dark:bg-primary-500/10 border border-primary-500/30 rounded-xl space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span id="layerEditorTitle" class="text-xs font-bold text-primary-500">編輯選中的圖層</span>
+                            <button id="deleteLayerBtn" class="text-[10px] text-red-500 hover:underline">刪除此圖層</button>
+                        </div>
+                        
+                        <!-- 文字圖層專用欄位 -->
+                        <div id="textLayerControls" class="space-y-3 hidden">
+                            <div class="space-y-1">
+                                <label class="text-[11px] text-slate-400">文字內容</label>
+                                <input type="text" id="customTextContent" class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[11px] text-slate-400">選擇字體</label>
+                                    <select id="customTextFont" class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1.5 text-xs">
+                                        <option value="system-ui">預設黑體 (Sans-serif)</option>
+                                        <option value="Georgia, serif">雅緻明體 (Serif)</option>
+                                        <option value="Courier New, monospace">等寬打字 (Mono)</option>
+                                        <option value="'Comic Sans MS', cursive">圓滑手寫風</option>
+                                        <option value="Impact, Charcoal">美式藝術字體</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[11px] text-slate-400">文字顏色</label>
+                                    <div class="flex gap-1">
+                                        <input type="color" id="customTextColor" value="#ffffff" class="w-6 h-6 rounded cursor-pointer border-0 bg-transparent p-0 shrink-0">
+                                        <input type="text" id="customTextColorText" value="#ffffff" class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1 py-0.5 text-[10px] text-center">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 文字底色選項 -->
+                            <div class="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-800 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <label class="text-[11px] font-semibold text-slate-500">啟用文字底色</label>
+                                    <input type="checkbox" id="textBgToggle" class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                                </div>
+                                <div id="textBgSettings" class="hidden space-y-2.5 pt-1.5 border-t border-slate-200 dark:border-slate-800">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[10px] text-slate-400">底色顏色</span>
+                                        <div class="flex gap-1 items-center">
+                                            <input type="color" id="textBgColor" value="#000000" class="w-6 h-6 rounded cursor-pointer border-0 bg-transparent p-0">
+                                            <input type="text" id="textBgColorText" value="#000000" class="w-16 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[9px] text-center">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] text-slate-400 flex justify-between">
+                                            <span>底色透明度</span>
+                                            <span id="textBgOpacityVal" class="font-mono">60%</span>
+                                        </label>
+                                        <input type="range" id="textBgOpacity" min="0.1" max="1.0" step="0.05" value="0.6" class="w-full accent-primary-500">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="text-[10px] text-slate-400 flex justify-between">
+                                                <span>底色大小</span>
+                                                <span id="textBgPaddingVal" class="font-mono">15px</span>
+                                            </label>
+                                            <input type="range" id="textBgPadding" min="0" max="60" value="15" class="w-full accent-primary-500">
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] text-slate-400 flex justify-between">
+                                                <span>底色圓角</span>
+                                                <span id="textBgRadiusVal" class="font-mono">8px</span>
+                                            </label>
+                                            <input type="range" id="textBgRadius" min="0" max="40" value="8" class="w-full accent-primary-500">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Emoji 圖層專用欄位 -->
+                        <div id="emojiLayerControls" class="space-y-3 hidden">
+                            <div class="space-y-1">
+                                <label class="text-[11px] text-slate-400">更換 Emoji 貼圖</label>
+                                <div class="grid grid-cols-6 gap-1.5 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                    <button class="emoji-swap-btn hover:scale-125 transition text-base" data-emoji="❤️">❤️</button>
+                                    <button class="emoji-swap-btn hover:scale-125 transition text-base" data-emoji="😂">😂</button>
+                                    <button class="emoji-swap-btn hover:scale-125 transition text-base" data-emoji="🔥">🔥</button>
+                                    <button class="emoji-swap-btn hover:scale-125 transition text-base" data-emoji="✨">✨</button>
+                                    <button class="emoji-swap-btn hover:scale-125 transition text-base" data-emoji="🚀">🚀</button>
+                                    <button class="emoji-swap-btn hover:scale-125 transition text-base" data-emoji="🌟">🌟</button>
+                                    <button class="emoji-swap-btn hover:scale-125 transition text-base" data-emoji="🎉">🎉</button>
+                                    <button class="emoji-swap-btn hover:scale-125 transition text-base" data-emoji="💡">💡</button>
+                                    <button class="emoji-swap-btn hover:scale-125 transition text-base" data-emoji="👍">👍</button>
+                                    <button class="emoji-swap-btn hover:scale-125 transition text-base" data-emoji="💯">💯</button>
+                                    <button class="emoji-swap-btn hover:scale-125 transition text-base" data-emoji="🌈">🌈</button>
+                                    <button class="emoji-swap-btn hover:scale-125 transition text-base" data-emoji="🐱">🐱</button>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[11px] text-slate-400">自訂輸入 Emoji</label>
+                                <input type="text" id="customEmojiInput" placeholder="直接輸入任何 emoji..." class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            </div>
+                        </div>
+
+                        <!-- 共用數值調整：大小、透明度、旋轉 -->
+                        <div class="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+                            <div class="space-y-1">
+                                <label class="text-[11px] text-slate-400 flex justify-between">
+                                    <span>圖層大小 (Size)</span>
+                                    <span id="layerSizeVal" class="font-mono text-primary-500">48px</span>
+                                </label>
+                                <input type="range" id="layerSizeRange" min="12" max="300" value="48" class="w-full accent-primary-500">
+                            </div>
+
+                            <div class="space-y-1">
+                                <label class="text-[11px] text-slate-400 flex justify-between">
+                                    <span>不透明度 (Opacity)</span>
+                                    <span id="layerOpacityVal" class="font-mono text-primary-500">100%</span>
+                                </label>
+                                <input type="range" id="layerOpacityRange" min="0.1" max="1.0" step="0.05" value="1.0" class="w-full accent-primary-500">
+                            </div>
+
+                            <div class="space-y-1">
+                                <label class="text-[11px] text-slate-400 flex justify-between">
+                                    <span>旋轉角度 (Rotation)</span>
+                                    <span id="layerRotationVal" class="font-mono text-primary-500">0°</span>
+                                </label>
+                                <input type="range" id="layerRotationRange" min="-180" max="180" value="0" class="w-full accent-primary-500">
+                            </div>
+                        </div>
+
+                        <p class="text-[10px] text-slate-400 leading-snug">💡 直接在右側預覽圖上「按住拖曳」即可移動選中的文字或 Emoji。</p>
+                    </div>
+
+                    <!-- 無選取提示 -->
+                    <div id="noSelectedTextHint" class="text-xs text-slate-400 bg-slate-50 dark:bg-slate-900/50 rounded-xl p-3 text-center border border-dashed border-slate-200 dark:border-slate-800">
+                        尚未選取任何圖層。請點擊上方「新增文字」或「新增 Emoji」，也可以直接點選畫布上的圖層物件進行編輯。
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 下載面版區塊 -->
+            <div class="p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 shrink-0 space-y-3">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] text-slate-400">匯出格式</label>
+                        <select id="exportFormat" class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1.5 text-xs focus:ring-1 focus:ring-primary-500">
+                            <option value="image/png">無損 PNG (支援透明 background)</option>
+                            <option value="image/jpeg">極致 JPEG (不支援透明度)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-400">匯出解析度模式</label>
+                        <select id="exportScale" class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1.5 text-xs focus:ring-1 focus:ring-primary-500">
+                            <option value="1">原始大圖尺寸 (100%)</option>
+                            <option value="0.75">超清晰縮放 (75%)</option>
+                            <option value="0.5">網路傳輸優化 (50%)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button id="downloadBtn" class="w-full py-3 bg-gradient-to-r from-primary-500 to-indigo-600 hover:from-primary-600 hover:to-indigo-700 text-white rounded-xl font-medium transition flex items-center justify-center gap-2 shadow-lg shadow-primary-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    下載無損大圖
+                </button>
+                <div class="text-[10px] text-slate-400 text-center">拼圖生成於瀏覽器本地進行，絕不上傳保障隱私</div>
+            </div>
+
+        </aside>
+
+        <!-- 右側即時畫布與工作區 -->
+        <main class="flex-1 bg-slate-100 dark:bg-slate-950 p-6 flex flex-col justify-between overflow-hidden">
+            
+            <!-- 工作區上方統計 -->
+            <div class="flex justify-between items-center mb-4 shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-200 dark:bg-slate-800">
+                        編輯/預覽模式
+                    </span>
+                    <span id="canvasStats" class="text-xs text-slate-500 dark:text-slate-400">
+                        (尚未載入圖片)
+                    </span>
+                </div>
+                <div class="text-xs text-slate-400">
+                    畫布大小縮放適配視窗大小
+                </div>
+            </div>
+
+            <!-- 畫布主要容器 -->
+            <div class="flex-1 flex items-center justify-center relative overflow-auto border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-slate-900/40 p-4">
+                
+                <!-- 空白提示 -->
+                <div id="canvasPlaceholder" class="text-center p-8 space-y-3 max-w-sm">
+                    <div class="w-16 h-16 bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h3 class="text-lg font-bold">尚未加入拼圖</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">請在左側面板上傳 1 ~ 9 張圖片。您可以隨時調整版面方式、顏色和間距，拼圖結果將在此即時呈現。</p>
+                </div>
+
+                <!-- 預覽與編輯用的 Canvas -->
+                <canvas id="collageCanvas" class="hidden max-w-full max-h-[70vh] shadow-2xl rounded-lg transition-transform duration-200 ease-out border border-slate-300 dark:border-slate-700 cursor-default"></canvas>
+
+            </div>
+
+            <!-- 下方提示訊息/狀態 -->
+            <footer class="mt-4 flex flex-col md:flex-row items-center justify-between text-xs text-slate-400 shrink-0 gap-2">
+                <p>💡 在預覽畫布上：點擊選取任一拼圖欄位(手動模式)或文字與貼圖，即可直接拖曳改變其位置與排列。</p>
+                <p class="font-mono text-[10px]" id="memoryCheck">系統正常</p>
+            </footer>
+
+        </main>
+
+    </div>
+
+    <!-- 訊息提示通知 Modal -->
+    <div id="toast" class="fixed bottom-5 right-5 px-5 py-3 rounded-xl shadow-xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-2">
+        <span id="toastMsg" class="text-sm font-medium"></span>
+    </div>
+
+    <script>
+        // 核心狀態管理
+        let imagesData = []; // { id, file, url, imgElement, width, height, name, scale, offsetX, offsetY }
+        let layersData = []; // 統一處理：文字及 Emoji 圖層
+        // { id, type: 'text'|'emoji', text|value, x, y, size, color, opacity, rotation, font, bgEnable, bgColor, bgOpacity, bgPadding, bgRadius }
+        
+        let currentLayout = 'grid'; // grid | horizontal | vertical
+        let dragSrcEl = null;
+
+        // 手動互動狀態
+        let selectedImageIndex = null;
+        let selectedLayerId = null; // 當前選定的文字/Emoji圖層 ID
+        let activeDragType = null; // 'image' | 'layer' | null
+        let dragStartPos = { x: 0, y: 0 };
+        let imageInitialOffsets = { x: 0, y: 0 };
+        let layerInitialPos = { x: 0, y: 0 };
+        
+        // 存放每個插槽的物理座標，用於互動點擊與繪圖
+        let drawPositions = []; 
+
+        // 獲取 DOM 節點
+        const fileInput = document.getElementById('fileInput');
+        const dropzone = document.getElementById('dropzone');
+        const imageList = document.getElementById('imageList');
+        const imageListSection = document.getElementById('imageListSection');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const imgCountSpan = document.getElementById('imgCount');
+        const layoutButtons = document.querySelectorAll('.layout-btn');
+        
+        const gridColsInput = document.getElementById('gridCols');
+        const gridColsVal = document.getElementById('colsVal');
+        const gridColsOption = document.getElementById('gridColsOption');
+        
+        const fitModeSelect = document.getElementById('fitMode');
+        const manualHint = document.getElementById('manualHint');
+        const manualControlsPanel = document.getElementById('manualControlsPanel');
+        const imgScaleRange = document.getElementById('imgScaleRange');
+        const imgScaleVal = document.getElementById('imgScaleVal');
+        const resetImgOffsetBtn = document.getElementById('resetImgOffsetBtn');
+        
+        const gridRatioSelect = document.getElementById('gridRatio');
+        const gridRatioOption = document.getElementById('gridRatioOption');
+        
+        const gapRange = document.getElementById('gapRange');
+        const gapVal = document.getElementById('gapVal');
+        const paddingRange = document.getElementById('paddingRange');
+        const paddingVal = document.getElementById('paddingVal');
+        const radiusRange = document.getElementById('radiusRange');
+        const radiusVal = document.getElementById('radiusVal');
+        
+        const bgColorInput = document.getElementById('bgColorInput');
+        const bgColorText = document.getElementById('bgColorText');
+        const colorPickerContainer = document.getElementById('colorPickerContainer');
+        const transparentBgToggle = document.getElementById('transparentBgToggle');
+        
+        const watermarkToggle = document.getElementById('watermarkToggle');
+        const watermarkSettings = document.getElementById('watermarkSettings');
+        const watermarkText = document.getElementById('watermarkText');
+        const watermarkPos = document.getElementById('watermarkPos');
+        const watermarkColor = document.getElementById('watermarkColor');
+
+        // 裝飾圖層 UI 控制節點
+        const addTextBtn = document.getElementById('addTextBtn');
+        const addEmojiBtn = document.getElementById('addEmojiBtn');
+        const layerEditorPanel = document.getElementById('layerEditorPanel');
+        const noSelectedTextHint = document.getElementById('noSelectedTextHint');
+        const layerEditorTitle = document.getElementById('layerEditorTitle');
+        const deleteLayerBtn = document.getElementById('deleteLayerBtn');
+
+        const textLayerControls = document.getElementById('textLayerControls');
+        const customTextContent = document.getElementById('customTextContent');
+        const customTextFont = document.getElementById('customTextFont');
+        const customTextColor = document.getElementById('customTextColor');
+        const customTextColorText = document.getElementById('customTextColorText');
+
+        // 文字底色節點
+        const textBgToggle = document.getElementById('textBgToggle');
+        const textBgSettings = document.getElementById('textBgSettings');
+        const textBgColor = document.getElementById('textBgColor');
+        const textBgColorText = document.getElementById('textBgColorText');
+        const textBgOpacity = document.getElementById('textBgOpacity');
+        const textBgOpacityVal = document.getElementById('textBgOpacityVal');
+        const textBgPadding = document.getElementById('textBgPadding');
+        const textBgPaddingVal = document.getElementById('textBgPaddingVal');
+        const textBgRadius = document.getElementById('textBgRadius');
+        const textBgRadiusVal = document.getElementById('textBgRadiusVal');
+
+        // Emoji 專用節點
+        const emojiLayerControls = document.getElementById('emojiLayerControls');
+        const customEmojiInput = document.getElementById('customEmojiInput');
+
+        // 共用調整節點
+        const layerSizeRange = document.getElementById('layerSizeRange');
+        const layerSizeVal = document.getElementById('layerSizeVal');
+        const layerOpacityRange = document.getElementById('layerOpacityRange');
+        const layerOpacityVal = document.getElementById('layerOpacityVal');
+        const layerRotationRange = document.getElementById('layerRotationRange');
+        const layerRotationVal = document.getElementById('layerRotationVal');
+        
+        const exportFormat = document.getElementById('exportFormat');
+        const exportScale = document.getElementById('exportScale');
+        const downloadBtn = document.getElementById('downloadBtn');
+        
+        const canvasPlaceholder = document.getElementById('canvasPlaceholder');
+        const collageCanvas = document.getElementById('collageCanvas');
+        const canvasStats = document.getElementById('canvasStats');
+        const memoryCheck = document.getElementById('memoryCheck');
+        
+        const themeToggle = document.getElementById('themeToggle');
+        const sunIcon = document.getElementById('sunIcon');
+        const moonIcon = document.getElementById('moonIcon');
+
+        // 初始化
+        window.addEventListener('load', () => {
+            updateThemeUI();
+            checkAppStatus();
+            setupCanvasInteractions();
+            setupLayerEventHandlers();
+        });
+
+        // 亮暗主題切換
+        themeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            updateThemeUI();
+        });
+
+        function updateThemeUI() {
+            if (document.documentElement.classList.contains('dark')) {
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            } else {
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            }
+        }
+
+        // 自訂訊息通知
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            
+            toastMsg.innerText = msg;
+            if (type === 'error') {
+                toast.className = "fixed bottom-5 right-5 px-5 py-3 rounded-xl shadow-xl transform translate-y-0 opacity-100 transition-all duration-300 z-50 flex items-center gap-2 bg-red-500 text-white";
+            } else {
+                toast.className = "fixed bottom-5 right-5 px-5 py-3 rounded-xl shadow-xl transform translate-y-0 opacity-100 transition-all duration-300 z-50 flex items-center gap-2 bg-emerald-500 text-white";
+            }
+            
+            setTimeout(() => {
+                toast.className = "fixed bottom-5 right-5 px-5 py-3 rounded-xl shadow-xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-2";
+            }, 3000);
+        }
+
+        // 點擊上傳
+        dropzone.addEventListener('click', () => fileInput.click());
+        
+        // 拖曳上傳
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('border-primary-500', 'bg-primary-50/10');
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('border-primary-500', 'bg-primary-50/10');
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('border-primary-500', 'bg-primary-50/10');
+            if (e.dataTransfer.files.length > 0) {
+                handleFiles(e.dataTransfer.files);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFiles(e.target.files);
+            }
+        });
+
+        // 處理上傳的檔案
+        function handleFiles(files) {
+            const currentCount = imagesData.length;
+            const remaining = 9 - currentCount;
+            if (remaining <= 0) {
+                showToast("圖片上傳已達上限 (最多 9 張)", "error");
+                return;
+            }
+
+            const filesToProcess = Array.from(files).slice(0, remaining);
+            let loadedCount = 0;
+
+            filesToProcess.forEach(file => {
+                if (!file.type.startsWith('image/')) {
+                    showToast("不支援的檔案格式，請上傳圖片！", "error");
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        imagesData.push({
+                            id: crypto.randomUUID(),
+                            file: file,
+                            url: event.target.result,
+                            imgElement: img,
+                            width: img.naturalWidth,
+                            height: img.naturalHeight,
+                            name: file.name,
+                            scale: 1.0,
+                            offsetX: 0,
+                            offsetY: 0
+                        });
+
+                        loadedCount++;
+                        if (loadedCount === filesToProcess.length) {
+                            showToast(`成功匯入 ${loadedCount} 張圖片`);
+                            checkAppStatus();
+                            renderImageList();
+                            triggerDraw();
+                        }
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+
+            if (files.length > remaining) {
+                showToast(`一次最多隻能上傳 9 張，其餘將被忽略`, "error");
+            }
+        }
+
+        // 檢查應用狀態並更新 UI
+        function checkAppStatus() {
+            imgCountSpan.innerText = imagesData.length;
+            if (imagesData.length > 0) {
+                imageListSection.classList.remove('hidden');
+                canvasPlaceholder.classList.add('hidden');
+                collageCanvas.classList.remove('hidden');
+                downloadBtn.removeAttribute('disabled');
+            } else {
+                imageListSection.classList.add('hidden');
+                canvasPlaceholder.classList.remove('hidden');
+                collageCanvas.classList.add('hidden');
+                downloadBtn.setAttribute('disabled', 'true');
+                canvasStats.innerText = "(尚未載入圖片)";
+            }
+
+            gridColsInput.max = Math.max(1, imagesData.length);
+            if (parseInt(gridColsInput.value) > imagesData.length) {
+                gridColsInput.value = imagesData.length;
+            }
+            updateGridColValue();
+        }
+
+        function updateGridColValue() {
+            const val = parseInt(gridColsInput.value);
+            if (val === 1) {
+                gridColsVal.innerText = "自動";
+            } else {
+                gridColsVal.innerText = `${val} 欄`;
+            }
+        }
+
+        // 渲染左側圖片管理清單
+        function renderImageList() {
+            imageList.innerHTML = '';
+            imagesData.forEach((item, index) => {
+                const isSelected = selectedImageIndex === index;
+                const row = document.createElement('div');
+                row.className = `flex items-center gap-3 p-2 rounded-lg border select-none transition-all ${
+                    isSelected 
+                    ? 'bg-primary-500/10 border-primary-500 shadow-md shadow-primary-500/5' 
+                    : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                } cursor-grab active:cursor-grabbing`;
+                row.draggable = true;
+                row.dataset.index = index;
+
+                row.addEventListener('dragstart', handleDragStart);
+                row.addEventListener('dragover', handleDragOver);
+                row.addEventListener('dragenter', handleDragEnter);
+                row.addEventListener('dragleave', handleDragLeave);
+                row.addEventListener('drop', handleDrop);
+                row.addEventListener('dragend', handleDragEnd);
+
+                row.innerHTML = `
+                    <div class="flex items-center justify-center shrink-0 text-slate-400 cursor-move">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </div>
+                    <img src="${item.url}" class="w-10 h-10 object-cover rounded border border-slate-300 dark:border-slate-600 shrink-0">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-semibold truncate text-slate-700 dark:text-slate-300">${item.name}</p>
+                        <p class="text-[10px] text-slate-400 font-mono">${item.width} x ${item.height} px</p>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="selectImageForEdit(event, ${index})" class="p-1 ${isSelected ? 'text-primary-500' : 'text-slate-400 hover:text-primary-500'} rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="微調此圖">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </button>
+                        <button onclick="moveItem(event, ${index}, -1)" class="p-1 text-slate-400 hover:text-primary-500 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="往上移">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                        </button>
+                        <button onclick="moveItem(event, ${index}, 1)" class="p-1 text-slate-400 hover:text-primary-500 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="往下移">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <button onclick="deleteItem(event, ${index})" class="p-1 text-slate-400 hover:text-red-500 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="刪除圖片">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                `;
+                imageList.appendChild(row);
+            });
+        }
+
+        // 點擊選取特定圖片微調
+        window.selectImageForEdit = function(e, index) {
+            e.stopPropagation();
+            selectedImageIndex = index;
+            renderImageList();
+            
+            fitModeSelect.value = 'manual';
+            handleFitModeChange();
+            updateManualControlsUI();
+            triggerDraw();
+        };
+
+        function handleDragStart(e) {
+            this.classList.add('dragging');
+            dragSrcEl = this;
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) e.preventDefault();
+            return false;
+        }
+
+        function handleDragEnter(e) {
+            this.classList.add('bg-primary-50/20', 'border-primary-400');
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('bg-primary-50/20', 'border-primary-400');
+        }
+
+        function handleDrop(e) {
+            e.stopPropagation();
+            if (dragSrcEl !== this) {
+                const srcIdx = parseInt(dragSrcEl.dataset.index);
+                const targetIdx = parseInt(this.dataset.index);
+                
+                const removed = imagesData.splice(srcIdx, 1)[0];
+                imagesData.splice(targetIdx, 0, removed);
+                
+                if (selectedImageIndex === srcIdx) {
+                    selectedImageIndex = targetIdx;
+                } else if (selectedImageIndex === targetIdx) {
+                    selectedImageIndex = srcIdx;
+                }
+
+                renderImageList();
+                triggerDraw();
+            }
+            return false;
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            document.querySelectorAll('#imageList > div').forEach(item => {
+                item.classList.remove('bg-primary-50/20', 'border-primary-400');
+            });
+        }
+
+        window.moveItem = function(e, index, direction) {
+            e.stopPropagation();
+            const targetIndex = index + direction;
+            if (targetIndex < 0 || targetIndex >= imagesData.length) return;
+            
+            const temp = imagesData[index];
+            imagesData[index] = imagesData[targetIndex];
+            imagesData[targetIndex] = temp;
+            
+            if (selectedImageIndex === index) selectedImageIndex = targetIndex;
+            else if (selectedImageIndex === targetIndex) selectedImageIndex = index;
+
+            renderImageList();
+            triggerDraw();
+        };
+
+        window.deleteItem = function(e, index) {
+            e.stopPropagation();
+            imagesData.splice(index, 1);
+            if (selectedImageIndex === index) {
+                selectedImageIndex = null;
+            } else if (selectedImageIndex > index) {
+                selectedImageIndex--;
+            }
+            checkAppStatus();
+            renderImageList();
+            triggerDraw();
+            showToast("圖片已移除");
+        };
+
+        // 清除全部
+        clearAllBtn.addEventListener('click', () => {
+            imagesData = [];
+            selectedImageIndex = null;
+            checkAppStatus();
+            renderImageList();
+            triggerDraw();
+            showToast("已清除所有圖片");
+        });
+
+        layoutButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                layoutButtons.forEach(b => b.className = 'layout-btn p-3 rounded-lg border text-center transition flex flex-col items-center gap-1.5 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800');
+                btn.className = 'layout-btn p-3 rounded-lg border text-center transition flex flex-col items-center gap-1.5 bg-primary-50 border-primary-500 text-primary-600 dark:bg-primary-950/40 dark:border-primary-400 dark:text-primary-400';
+                
+                currentLayout = btn.dataset.layout;
+
+                if (currentLayout === 'grid') {
+                    gridColsOption.classList.remove('hidden');
+                    gridRatioOption.classList.remove('hidden');
+                    fitModeSelect.style.display = 'block';
+                } else {
+                    gridColsOption.classList.add('hidden');
+                    gridRatioOption.classList.add('hidden');
+                }
+
+                triggerDraw();
+            });
+        });
+
+        fitModeSelect.addEventListener('change', handleFitModeChange);
+
+        function handleFitModeChange() {
+            const isManual = fitModeSelect.value === 'manual';
+            if (isManual) {
+                manualHint.classList.remove('hidden');
+                manualControlsPanel.classList.remove('hidden');
+                if (selectedImageIndex === null && imagesData.length > 0) {
+                    selectedImageIndex = 0;
+                    renderImageList();
+                }
+                updateManualControlsUI();
+            } else {
+                manualHint.classList.add('hidden');
+                manualControlsPanel.classList.add('hidden');
+            }
+            triggerDraw();
+        }
+
+        function updateManualControlsUI() {
+            if (selectedImageIndex !== null && imagesData[selectedImageIndex]) {
+                const imgObj = imagesData[selectedImageIndex];
+                imgScaleRange.value = imgObj.scale;
+                imgScaleVal.innerText = `${imgObj.scale.toFixed(1)}x`;
+            }
+        }
+
+        imgScaleRange.addEventListener('input', (e) => {
+            if (selectedImageIndex !== null && imagesData[selectedImageIndex]) {
+                imagesData[selectedImageIndex].scale = parseFloat(e.target.value);
+                imgScaleVal.innerText = `${parseFloat(e.target.value).toFixed(1)}x`;
+                triggerDraw();
+            }
+        });
+
+        resetImgOffsetBtn.addEventListener('click', () => {
+            if (selectedImageIndex !== null && imagesData[selectedImageIndex]) {
+                imagesData[selectedImageIndex].scale = 1.0;
+                imagesData[selectedImageIndex].offsetX = 0;
+                imagesData[selectedImageIndex].offsetY = 0;
+                updateManualControlsUI();
+                triggerDraw();
+                showToast("圖片縮放及位置已重設");
+            }
+        });
+
+        // 監聽透明背景切換
+        transparentBgToggle.addEventListener('change', (e) => {
+            const isTransparent = e.target.checked;
+            if (isTransparent) {
+                colorPickerContainer.classList.add('opacity-40', 'pointer-events-none');
+                collageCanvas.classList.add('transparent-bg-pattern');
+            } else {
+                colorPickerContainer.classList.remove('opacity-40', 'pointer-events-none');
+                collageCanvas.classList.remove('transparent-bg-pattern');
+            }
+            triggerDraw();
+        });
+
+        gridColsInput.addEventListener('input', () => {
+            updateGridColValue();
+            triggerDraw();
+        });
+        gridRatioSelect.addEventListener('change', triggerDraw);
+        
+        gapRange.addEventListener('input', (e) => {
+            gapVal.innerText = `${e.target.value} px`;
+            triggerDraw();
+        });
+        paddingRange.addEventListener('input', (e) => {
+            paddingVal.innerText = `${e.target.value} px`;
+            triggerDraw();
+        });
+        radiusRange.addEventListener('input', (e) => {
+            radiusVal.innerText = `${e.target.value} px`;
+            triggerDraw();
+        });
+
+        bgColorInput.addEventListener('input', (e) => {
+            bgColorText.value = e.target.value;
+            triggerDraw();
+        });
+        bgColorText.addEventListener('input', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+                bgColorInput.value = e.target.value;
+                triggerDraw();
+            }
+        });
+
+
+        /* ==================== 裝飾圖層（文字與 Emoji）事件處理 ==================== */
+
+        // 新增文字圖層
+        addTextBtn.addEventListener('click', () => {
+            const newText = {
+                id: crypto.randomUUID(),
+                type: 'text',
+                text: "自訂文字內容",
+                x: collageCanvas.width > 0 ? collageCanvas.width / 2 : 500,
+                y: collageCanvas.height > 0 ? collageCanvas.height / 2 : 500,
+                size: 50,
+                color: "#ffffff",
+                opacity: 1.0,
+                rotation: 0,
+                font: "system-ui",
+                // 文字底色屬性
+                bgEnable: false,
+                bgColor: "#000000",
+                bgOpacity: 0.6,
+                bgPadding: 15,
+                bgRadius: 8
+            };
+            layersData.push(newText);
+            selectedLayerId = newText.id;
+            selectedImageIndex = null;
+            
+            updateLayerEditorPanel();
+            renderImageList();
+            triggerDraw();
+            showToast("成功新增文字圖層！");
+        });
+
+        // 新增 Emoji 圖層
+        addEmojiBtn.addEventListener('click', () => {
+            const newEmoji = {
+                id: crypto.randomUUID(),
+                type: 'emoji',
+                value: "🔥",
+                x: collageCanvas.width > 0 ? collageCanvas.width / 2 : 500,
+                y: collageCanvas.height > 0 ? collageCanvas.height / 2 : 500,
+                size: 70,
+                opacity: 1.0,
+                rotation: 0
+            };
+            layersData.push(newEmoji);
+            selectedLayerId = newEmoji.id;
+            selectedImageIndex = null;
+            
+            updateLayerEditorPanel();
+            renderImageList();
+            triggerDraw();
+            showToast("成功新增 Emoji 貼圖！");
+        });
+
+        // 刪除選中的圖層
+        deleteLayerBtn.addEventListener('click', () => {
+            if (selectedLayerId !== null) {
+                layersData = layersData.filter(layer => layer.id !== selectedLayerId);
+                selectedLayerId = null;
+                updateLayerEditorPanel();
+                triggerDraw();
+                showToast("已刪除該裝飾圖層");
+            }
+        });
+
+        // 更新編輯面板 UI (適配選中文字 or Emoji)
+        function updateLayerEditorPanel() {
+            if (selectedLayerId !== null) {
+                const layer = layersData.find(l => l.id === selectedLayerId);
+                if (layer) {
+                    layerEditorPanel.classList.remove('hidden');
+                    noSelectedTextHint.classList.add('hidden');
+                    
+                    // 共用滑塊數值
+                    layerSizeRange.value = layer.size;
+                    layerSizeVal.innerText = `${layer.size}px`;
+                    layerOpacityRange.value = layer.opacity;
+                    layerOpacityVal.innerText = `${Math.round(layer.opacity * 100)}%`;
+                    layerRotationRange.value = layer.rotation;
+                    layerRotationVal.innerText = `${layer.rotation}°`;
+
+                    if (layer.type === 'text') {
+                        layerEditorTitle.innerText = "編輯選中的文字圖層";
+                        textLayerControls.classList.remove('hidden');
+                        emojiLayerControls.classList.add('hidden');
+                        
+                        customTextContent.value = layer.text;
+                        customTextFont.value = layer.font;
+                        customTextColor.value = layer.color;
+                        customTextColorText.value = layer.color;
+
+                        // 文字底色 UI
+                        textBgToggle.checked = layer.bgEnable;
+                        if (layer.bgEnable) {
+                            textBgSettings.classList.remove('hidden');
+                        } else {
+                            textBgSettings.classList.add('hidden');
+                        }
+                        textBgColor.value = layer.bgColor;
+                        textBgColorText.value = layer.bgColor;
+                        textBgOpacity.value = layer.bgOpacity;
+                        textBgOpacityVal.innerText = `${Math.round(layer.bgOpacity * 100)}%`;
+                        textBgPadding.value = layer.bgPadding;
+                        textBgPaddingVal.innerText = `${layer.bgPadding}px`;
+                        textBgRadius.value = layer.bgRadius;
+                        textBgRadiusVal.innerText = `${layer.bgRadius}px`;
+
+                    } else if (layer.type === 'emoji') {
+                        layerEditorTitle.innerText = "編輯選中的 Emoji 貼圖";
+                        textLayerControls.classList.add('hidden');
+                        emojiLayerControls.classList.remove('hidden');
+                        customEmojiInput.value = layer.value;
+                    }
+                    return;
+                }
+            }
+            layerEditorPanel.classList.add('hidden');
+            noSelectedTextHint.classList.remove('hidden');
+        }
+
+        // 綁定圖層屬性更動事件
+        function setupLayerEventHandlers() {
+            // 文字控制
+            customTextContent.addEventListener('input', (e) => updateSelectedLayerProp('text', e.target.value));
+            customTextFont.addEventListener('change', (e) => updateSelectedLayerProp('font', e.target.value));
+            
+            customTextColor.addEventListener('input', (e) => {
+                customTextColorText.value = e.target.value;
+                updateSelectedLayerProp('color', e.target.value);
+            });
+            customTextColorText.addEventListener('input', (e) => {
+                if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+                    customTextColor.value = e.target.value;
+                    updateSelectedLayerProp('color', e.target.value);
+                }
+            });
+
+            // 文字底色控制
+            textBgToggle.addEventListener('change', (e) => {
+                updateSelectedLayerProp('bgEnable', e.target.checked);
+                updateLayerEditorPanel();
+            });
+            textBgColor.addEventListener('input', (e) => {
+                textBgColorText.value = e.target.value;
+                updateSelectedLayerProp('bgColor', e.target.value);
+            });
+            textBgColorText.addEventListener('input', (e) => {
+                if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+                    textBgColor.value = e.target.value;
+                    updateSelectedLayerProp('bgColor', e.target.value);
+                }
+            });
+            textBgOpacity.addEventListener('input', (e) => {
+                textBgOpacityVal.innerText = `${Math.round(e.target.value * 100)}%`;
+                updateSelectedLayerProp('bgOpacity', parseFloat(e.target.value));
+            });
+            textBgPadding.addEventListener('input', (e) => {
+                textBgPaddingVal.innerText = `${e.target.value}px`;
+                updateSelectedLayerProp('bgPadding', parseInt(e.target.value));
+            });
+            textBgRadius.addEventListener('input', (e) => {
+                textBgRadiusVal.innerText = `${e.target.value}px`;
+                updateSelectedLayerProp('bgRadius', parseInt(e.target.value));
+            });
+
+            // Emoji 選擇與更換控制
+            document.querySelectorAll('.emoji-swap-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const emojiValue = btn.dataset.emoji;
+                    customEmojiInput.value = emojiValue;
+                    updateSelectedLayerProp('value', emojiValue);
+                });
+            });
+            customEmojiInput.addEventListener('input', (e) => {
+                updateSelectedLayerProp('value', e.target.value);
+            });
+
+            // 共用控制
+            layerSizeRange.addEventListener('input', (e) => {
+                layerSizeVal.innerText = `${e.target.value}px`;
+                updateSelectedLayerProp('size', parseInt(e.target.value));
+            });
+            layerOpacityRange.addEventListener('input', (e) => {
+                layerOpacityVal.innerText = `${Math.round(e.target.value * 100)}%`;
+                updateSelectedLayerProp('opacity', parseFloat(e.target.value));
+            });
+            layerRotationRange.addEventListener('input', (e) => {
+                layerRotationVal.innerText = `${e.target.value}°`;
+                updateSelectedLayerProp('rotation', parseInt(e.target.value));
+            });
+        }
+
+        function updateSelectedLayerProp(prop, val) {
+            if (selectedLayerId !== null) {
+                const index = layersData.findIndex(l => l.id === selectedLayerId);
+                if (index !== -1) {
+                    layersData[index][prop] = val;
+                    triggerDraw();
+                }
+            }
+        }
+
+
+        /* ==================== 畫布互動碰撞偵測與拖曳機制 ==================== */
+
+        function setupCanvasInteractions() {
+            collageCanvas.addEventListener('mousedown', handlePointerDown);
+            window.addEventListener('mousemove', handlePointerMove);
+            window.addEventListener('mouseup', handlePointerUp);
+
+            collageCanvas.addEventListener('touchstart', handlePointerDown, { passive: false });
+            window.addEventListener('touchmove', handlePointerMove, { passive: false });
+            window.addEventListener('touchend', handlePointerUp);
+        }
+
+        function getCanvasCoords(e) {
+            const rect = collageCanvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            const x = (clientX - rect.left) * (collageCanvas.width / rect.width);
+            const y = (clientY - rect.top) * (collageCanvas.height / rect.height);
+            return { x, y };
+        }
+
+        // 碰撞測試：支援旋轉與文字底色外框之多功能圖層測試
+        function hitTestLayers(coords) {
+            const ctx = collageCanvas.getContext('2d');
+            
+            for (let i = layersData.length - 1; i >= 0; i--) {
+                const layer = layersData[i];
+                ctx.save();
+                
+                let testWidth = layer.size;
+                let testHeight = layer.size;
+
+                if (layer.type === 'text') {
+                    ctx.font = `bold ${layer.size}px ${layer.font}`;
+                    const textWidth = ctx.measureText(layer.text).width;
+                    
+                    // 如果有底色，則把底色的 Padding 也加進碰撞區域中
+                    if (layer.bgEnable) {
+                        testWidth = textWidth + layer.bgPadding * 2;
+                        testHeight = layer.size + layer.bgPadding * 2;
+                    } else {
+                        testWidth = textWidth;
+                        testHeight = layer.size;
+                    }
+                }
+
+                const dx = coords.x - layer.x;
+                const dy = coords.y - layer.y;
+                const rad = -layer.rotation * Math.PI / 180;
+                
+                const unrotatedX = dx * Math.cos(rad) - dy * Math.sin(rad);
+                const unrotatedY = dx * Math.sin(rad) + dy * Math.cos(rad);
+                
+                ctx.restore();
+
+                if (Math.abs(unrotatedX) < testWidth / 2 + 15 && Math.abs(unrotatedY) < testHeight / 2 + 15) {
+                    return layer;
+                }
+            }
+            return null;
+        }
+
+        function hitTestImageSlot(coords) {
+            for (let i = 0; i < drawPositions.length; i++) {
+                const pos = drawPositions[i];
+                if (coords.x >= pos.x && coords.x <= pos.x + pos.w &&
+                    coords.y >= pos.y && coords.y <= pos.y + pos.h) {
+                    return i;
+                }
+            }
+            return null;
+        }
+
+        function handlePointerDown(e) {
+            if (imagesData.length === 0) return;
+            
+            const coords = getCanvasCoords(e);
+            
+            // 1. 優先測試：文字或 Emoji 裝飾圖層
+            const clickedLayer = hitTestLayers(coords);
+            if (clickedLayer) {
+                if (e.cancelable) e.preventDefault();
+                activeDragType = 'layer';
+                selectedLayerId = clickedLayer.id;
+                selectedImageIndex = null;
+                
+                dragStartPos = { x: coords.x, y: coords.y };
+                layerInitialPos = { x: clickedLayer.x, y: clickedLayer.y };
+                
+                updateLayerEditorPanel();
+                renderImageList();
+                triggerDraw();
+                return;
+            }
+
+            // 2. 其次測試：圖片拼圖插槽
+            const clickedSlotIndex = hitTestImageSlot(coords);
+            if (clickedSlotIndex !== null) {
+                selectedImageIndex = clickedSlotIndex;
+                selectedLayerId = null;
+                
+                if (fitModeSelect.value === 'manual' && imagesData[clickedSlotIndex]) {
+                    if (e.cancelable) e.preventDefault();
+                    activeDragType = 'image';
+                    dragStartPos = { x: coords.x, y: coords.y };
+                    imageInitialOffsets = {
+                        x: imagesData[clickedSlotIndex].offsetX,
+                        y: imagesData[clickedSlotIndex].offsetY
+                    };
+                }
+
+                updateLayerEditorPanel();
+                renderImageList();
+                updateManualControlsUI();
+                triggerDraw();
+            }
+        }
+
+        function handlePointerMove(e) {
+            if (!activeDragType) return;
+            if (e.cancelable) e.preventDefault();
+
+            const coords = getCanvasCoords(e);
+            const dx = coords.x - dragStartPos.x;
+            const dy = coords.y - dragStartPos.y;
+
+            if (activeDragType === 'layer' && selectedLayerId !== null) {
+                const index = layersData.findIndex(l => l.id === selectedLayerId);
+                if (index !== -1) {
+                    layersData[index].x = layerInitialPos.x + dx;
+                    layersData[index].y = layerInitialPos.y + dy;
+                    triggerDraw();
+                }
+            } else if (activeDragType === 'image' && selectedImageIndex !== null) {
+                if (imagesData[selectedImageIndex]) {
+                    imagesData[selectedImageIndex].offsetX = imageInitialOffsets.x + dx;
+                    imagesData[selectedImageIndex].offsetY = imageInitialOffsets.y + dy;
+                    triggerDraw();
+                }
+            }
+        }
+
+        function handlePointerUp() {
+            activeDragType = null;
+        }
+
+        let drawTimeout;
+        function triggerDraw() {
+            clearTimeout(drawTimeout);
+            drawTimeout = setTimeout(drawCollage, 40);
+        }
+
+
+        /* ==================== Canvas 核心渲染引擎 ==================== */
+
+        function drawCollage(isForExport = false) {
+            if (imagesData.length === 0) return;
+
+            const ctx = collageCanvas.getContext('2d');
+            const gap = parseInt(gapRange.value);
+            const padding = parseInt(paddingRange.value);
+            const radius = parseInt(radiusRange.value);
+            const bgColor = bgColorInput.value;
+            const isTransparent = transparentBgToggle.checked;
+            const numImages = imagesData.length;
+
+            let baseSize = 1080; 
+            let maxOrigW = Math.max(...imagesData.map(i => i.width));
+            let maxOrigH = Math.max(...imagesData.map(i => i.height));
+            baseSize = Math.max(maxOrigW, maxOrigH, 1200); 
+
+            if (baseSize > 3500) baseSize = 3500;
+
+            let canvasWidth = 0;
+            let canvasHeight = 0;
+            drawPositions = [];
+
+            if (currentLayout === 'grid') {
+                let cols = parseInt(gridColsInput.value);
+                if (cols === 1) {
+                    if (numImages <= 3) cols = numImages;
+                    else if (numImages <= 4) cols = 2;
+                    else if (numImages <= 6) cols = 3;
+                    else cols = 3;
+                }
+                const rows = Math.ceil(numImages / cols);
+
+                let ratioVal = 1; 
+                const selectRatio = gridRatioSelect.value;
+                if (selectRatio === '4:3') ratioVal = 3 / 4;
+                else if (selectRatio === '16:9') ratioVal = 9 / 16;
+                else if (selectRatio === 'original_avg') {
+                    let totalRatio = 0;
+                    imagesData.forEach(img => totalRatio += (img.height / img.width));
+                    ratioVal = totalRatio / numImages;
+                }
+
+                const cellW = baseSize;
+                const cellH = baseSize * ratioVal;
+
+                canvasWidth = (cellW * cols) + (gap * (cols - 1)) + (padding * 2);
+                canvasHeight = (cellH * rows) + (gap * (rows - 1)) + (padding * 2);
+
+                for (let i = 0; i < numImages; i++) {
+                    const row = Math.floor(i / cols);
+                    const col = i % cols;
+                    const x = padding + col * (cellW + gap);
+                    const y = padding + row * (cellH + gap);
+                    drawPositions.push({ x, y, w: cellW, h: cellH });
+                }
+
+            } else if (currentLayout === 'horizontal') {
+                const targetH = baseSize;
+                let totalW = 0;
+                let widths = [];
+
+                imagesData.forEach(img => {
+                    const aspect = img.width / img.height;
+                    const scaledW = targetH * aspect;
+                    widths.push(scaledW);
+                    totalW += scaledW;
+                });
+
+                canvasWidth = totalW + (gap * (numImages - 1)) + (padding * 2);
+                canvasHeight = targetH + (padding * 2);
+
+                let currentX = padding;
+                for (let i = 0; i < numImages; i++) {
+                    drawPositions.push({
+                        x: currentX,
+                        y: padding,
+                        w: widths[i],
+                        h: targetH
+                    });
+                    currentX += widths[i] + gap;
+                }
+
+            } else if (currentLayout === 'vertical') {
+                const targetW = baseSize;
+                let totalH = 0;
+                let heights = [];
+
+                imagesData.forEach(img => {
+                    const aspect = img.height / img.width;
+                    const scaledH = targetW * aspect;
+                    heights.push(scaledH);
+                    totalH += scaledH;
+                });
+
+                canvasWidth = targetW + (padding * 2);
+                canvasHeight = totalH + (gap * (numImages - 1)) + (padding * 2);
+
+                let currentY = padding;
+                for (let i = 0; i < numImages; i++) {
+                    drawPositions.push({
+                        x: padding,
+                        y: currentY,
+                        w: targetW,
+                        h: heights[i]
+                    });
+                    currentY += heights[i] + gap;
+                }
+            }
+
+            const maxDimension = 15000;
+            if (canvasWidth > maxDimension || canvasHeight > maxDimension) {
+                const scaleDown = Math.min(maxDimension / canvasWidth, maxDimension / canvasHeight);
+                canvasWidth = Math.floor(canvasWidth * scaleDown);
+                canvasHeight = Math.floor(canvasHeight * scaleDown);
+                drawPositions = drawPositions.map(pos => ({
+                    x: pos.x * scaleDown,
+                    y: pos.y * scaleDown,
+                    w: pos.w * scaleDown,
+                    h: pos.h * scaleDown
+                }));
+                memoryCheck.innerText = "⚠️ 尺寸極大，已啟用自動防崩潰優化";
+                memoryCheck.className = "text-amber-500 font-semibold";
+            } else {
+                memoryCheck.innerText = "✨ 最高無損解析度渲染中";
+                memoryCheck.className = "text-emerald-500 font-semibold";
+            }
+
+            collageCanvas.width = canvasWidth;
+            collageCanvas.height = canvasHeight;
+
+            if (isTransparent) {
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            } else {
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            }
+
+            imagesData.forEach((item, index) => {
+                const pos = drawPositions[index];
+                if (!pos) return;
+
+                ctx.save();
+                
+                if (radius > 0) {
+                    ctx.beginPath();
+                    ctx.roundRect(pos.x, pos.y, pos.w, pos.h, radius);
+                    ctx.clip();
+                }
+
+                const img = item.imgElement;
+                const fitMode = fitModeSelect.value;
+
+                if (fitMode === 'cover') {
+                    const imgAspect = img.naturalWidth / img.naturalHeight;
+                    const cellAspect = pos.w / pos.h;
+                    let sWidth, sHeight, sx, sy;
+
+                    if (imgAspect > cellAspect) {
+                        sHeight = img.naturalHeight;
+                        sWidth = img.naturalHeight * cellAspect;
+                        sx = (img.naturalWidth - sWidth) / 2;
+                        sy = 0;
+                    } else {
+                        sWidth = img.naturalWidth;
+                        sHeight = img.naturalWidth / imgAspect;
+                        sx = 0;
+                        sy = (img.naturalHeight - sHeight) / 2;
+                    }
+                    ctx.drawImage(img, sx, sy, sWidth, sHeight, pos.x, pos.y, pos.w, pos.h);
+
+                } else if (fitMode === 'contain') {
+                    const imgAspect = img.naturalWidth / img.naturalHeight;
+                    const cellAspect = pos.w / pos.h;
+                    let dWidth, dHeight, dx, dy;
+
+                    if (imgAspect > cellAspect) {
+                        dWidth = pos.w;
+                        dHeight = pos.w / imgAspect;
+                        dx = pos.x;
+                        dy = pos.y + (pos.h - dHeight) / 2;
+                    } else {
+                        dHeight = pos.h;
+                        dWidth = pos.h * imgAspect;
+                        dx = pos.x + (pos.w - dWidth) / 2;
+                        dy = pos.y;
+                    }
+                    ctx.drawImage(img, dx, dy, dWidth, dHeight);
+
+                } else if (fitMode === 'manual') {
+                    const cellCenterX = pos.x + pos.w / 2;
+                    const cellCenterY = pos.y + pos.h / 2;
+
+                    const imgAspect = img.naturalWidth / img.naturalHeight;
+                    const cellAspect = pos.w / pos.h;
+                    
+                    let baseW, baseH;
+                    if (imgAspect > cellAspect) {
+                        baseH = pos.h;
+                        baseW = pos.h * imgAspect;
+                    } else {
+                        baseW = pos.w;
+                        baseH = pos.w / imgAspect;
+                    }
+
+                    const finalW = baseW * item.scale;
+                    const finalH = baseH * item.scale;
+
+                    const finalX = cellCenterX - finalW / 2 + item.offsetX;
+                    const finalY = cellCenterY - finalH / 2 + item.offsetY;
+
+                    ctx.drawImage(img, finalX, finalY, finalW, finalH);
+                }
+
+                ctx.restore();
+
+                if (!isForExport && fitMode === 'manual' && selectedImageIndex === index) {
+                    ctx.save();
+                    ctx.strokeStyle = '#8b5cf6';
+                    ctx.lineWidth = Math.max(4, canvasWidth * 0.005);
+                    ctx.setLineDash([15, 10]);
+                    ctx.strokeRect(pos.x, pos.y, pos.w, pos.h);
+                    ctx.restore();
+                }
+            });
+
+            // 快速版權浮水印
+            if (watermarkToggle.checked && watermarkText.value.trim() !== "") {
+                ctx.save();
+                const wmText = watermarkText.value.trim();
+                const wColor = watermarkColor.value;
+                const fontSize = Math.max(16, Math.floor(canvasWidth * 0.022));
+                
+                ctx.font = `bold ${fontSize}px system-ui, -apple-system, sans-serif`;
+                ctx.fillStyle = wColor;
+                ctx.textBaseline = 'middle';
+                ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+                ctx.shadowBlur = 8;
+
+                const textWidth = ctx.measureText(wmText).width;
+                const wmMargin = fontSize * 1.2;
+                
+                let wmX = 0, wmY = 0;
+                const position = watermarkPos.value;
+                if (position === 'bottom-right') {
+                    wmX = canvasWidth - textWidth - wmMargin;
+                    wmY = canvasHeight - wmMargin;
+                } else if (position === 'bottom-left') {
+                    wmX = wmMargin;
+                    wmY = canvasHeight - wmMargin;
+                } else if (position === 'top-right') {
+                    wmX = canvasWidth - textWidth - wmMargin;
+                    wmY = wmMargin + fontSize;
+                } else if (position === 'top-left') {
+                    wmX = wmMargin;
+                    wmY = wmMargin + fontSize;
+                }
+
+                ctx.fillText(wmText, wmX, wmY);
+                ctx.restore();
+            }
+
+            // 4. 渲染文字及 Emoji 圖層
+            layersData.forEach(layer => {
+                ctx.save();
+                
+                ctx.translate(layer.x, layer.y);
+                ctx.rotate(layer.rotation * Math.PI / 180);
+                
+                if (layer.type === 'text') {
+                    // 計算文字大小與底色
+                    ctx.font = `bold ${layer.size}px ${layer.font}`;
+                    const textWidth = ctx.measureText(layer.text).width;
+                    const textHeight = layer.size;
+
+                    // 若啟用文字底色
+                    if (layer.bgEnable) {
+                        ctx.save();
+                        ctx.globalAlpha = layer.opacity * layer.bgOpacity;
+                        ctx.fillStyle = layer.bgColor;
+                        
+                        const rectW = textWidth + layer.bgPadding * 2;
+                        const rectH = textHeight + layer.bgPadding * 2;
+                        ctx.beginPath();
+                        ctx.roundRect(-rectW / 2, -rectH / 2, rectW, rectH, layer.bgRadius);
+                        ctx.fill();
+                        ctx.restore();
+                    }
+
+                    ctx.globalAlpha = layer.opacity;
+                    ctx.fillStyle = layer.color;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(layer.text, 0, 0);
+
+                } else if (layer.type === 'emoji') {
+                    ctx.globalAlpha = layer.opacity;
+                    ctx.font = `${layer.size}px system-ui, -apple-system, sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(layer.value, 0, 0);
+                }
+
+                ctx.restore();
+
+                // 預覽編輯框
+                if (!isForExport && selectedLayerId === layer.id) {
+                    ctx.save();
+                    ctx.translate(layer.x, layer.y);
+                    ctx.rotate(layer.rotation * Math.PI / 180);
+                    
+                    let w = layer.size;
+                    let h = layer.size;
+
+                    if (layer.type === 'text') {
+                        ctx.font = `bold ${layer.size}px ${layer.font}`;
+                        const tW = ctx.measureText(layer.text).width;
+                        if (layer.bgEnable) {
+                            w = tW + layer.bgPadding * 2 + 10;
+                            h = layer.size + layer.bgPadding * 2 + 10;
+                        } else {
+                            w = tW + 20;
+                            h = layer.size + 15;
+                        }
+                    } else {
+                        w = layer.size + 15;
+                        h = layer.size + 15;
+                    }
+
+                    ctx.strokeStyle = '#8b5cf6';
+                    ctx.lineWidth = Math.max(2, canvasWidth * 0.002);
+                    ctx.setLineDash([6, 4]);
+                    ctx.strokeRect(-w/2, -h/2, w, h);
+
+                    ctx.fillStyle = '#8b5cf6';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.restore();
+                }
+            });
+
+            canvasStats.innerText = `輸出尺寸: ${canvasWidth} × ${canvasHeight} px (約 ${((canvasWidth * canvasHeight)/1000000).toFixed(1)} 百萬像素)`;
+        }
+
+        // 下載無損拼接大圖
+        downloadBtn.addEventListener('click', () => {
+            if (imagesData.length === 0) return;
+
+            // 切換成載入狀態
+            downloadBtn.setAttribute('disabled', 'true');
+            const originalBtnText = downloadBtn.innerHTML;
+            downloadBtn.innerHTML = `
+                <svg class="animate-spin h-5 w-5 text-white inline-block mr-2" fill="none" viewBox="0 0 24 24" style="width: 1.25rem; height: 1.25rem;">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                正在封裝無損大圖...
+            `;
+
+            // 等待一小會，確保 UI 有時間響應 loading 效果
+            setTimeout(() => {
+                try {
+                    const format = exportFormat.value;
+                    const scale = parseFloat(exportScale.value);
+                    
+                    // 重新以「匯出模式（不含預覽選取框）」重新繪製 Canvas
+                    drawCollage(true);
+
+                    let targetCanvas = collageCanvas;
+
+                    // 如果使用者選擇了縮放匯出 (75% 或 50%)，在記憶體中建立臨時縮放 canvas
+                    if (scale !== 1) {
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = Math.floor(collageCanvas.width * scale);
+                        tempCanvas.height = Math.floor(collageCanvas.height * scale);
+                        const tempCtx = tempCanvas.getContext('2d');
+                        tempCtx.drawImage(collageCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+                        targetCanvas = tempCanvas;
+                    }
+
+                    // 開始壓縮與輸出
+                    const quality = format === 'image/jpeg' ? 0.95 : 1.0;
+                    const dataUrl = targetCanvas.toDataURL(format, quality);
+                    
+                    // 建立臨時下載節點
+                    const downloadLink = document.createElement('a');
+                    const extension = format === 'image/png' ? 'png' : 'jpg';
+                    downloadLink.download = `CollageMaster_${Date.now()}.${extension}`;
+                    downloadLink.href = dataUrl;
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+
+                    showToast("無損大圖下載成功！");
+                } catch (err) {
+                    console.error(err);
+                    showToast("輸出時出錯，可能圖片解析度過大，請調低解析度模式再試", "error");
+                } finally {
+                    drawCollage(false);
+                    downloadBtn.innerHTML = originalBtnText;
+                    downloadBtn.removeAttribute('disabled');
+                }
+            }, 300);
+        });
+    </script>
+</body>
+</html>
